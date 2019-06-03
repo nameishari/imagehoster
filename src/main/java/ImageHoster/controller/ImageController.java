@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
@@ -92,9 +93,13 @@ public class ImageController {
     //The method first needs to convert the list of all the tags to a string containing all the tags separated by a comma and then add this string in a Model type object
     //This string is then displayed by 'edit.html' file as previous tags of an image
     @RequestMapping(value = "/editImage")
-    public String editImage(@RequestParam("imageId") Integer imageId, Model model) {
+    public String editImage(@RequestParam("imageId") Integer imageId, Model model, HttpSession session, final RedirectAttributes redirectAttributes) {
+        String editError = "Only the owner of the image can edit the image";
         Image image = imageService.getImage(imageId);
-
+        if (!isUserLoggedInUser(image.getUser(), session)) {
+            redirectAttributes.addFlashAttribute("editError", editError);
+            return "redirect:/images/"+ imageId;
+        }
         String tags = convertTagsToString(image.getTags());
         model.addAttribute("image", image);
         model.addAttribute("tags", tags);
@@ -140,7 +145,13 @@ public class ImageController {
     //The method calls the deleteImage() method in the business logic passing the id of the image to be deleted
     //Looks for a controller method with request mapping of type '/images'
     @RequestMapping(value = "/deleteImage", method = RequestMethod.DELETE)
-    public String deleteImageSubmit(@RequestParam(name = "imageId") Integer imageId) {
+    public String deleteImageSubmit(@RequestParam(name = "imageId") Integer imageId, HttpSession session, final RedirectAttributes redirectAttributes) {
+        final String deleteError = "Only the owner of the image can delete the image";
+        Image image = imageService.getImage(imageId);
+        if (!isUserLoggedInUser(image.getUser(), session)) {
+            redirectAttributes.addFlashAttribute("deleteError", deleteError);
+            return "redirect:/images/"+ imageId;
+        }
         imageService.deleteImage(imageId);
         return "redirect:/images";
     }
@@ -149,6 +160,11 @@ public class ImageController {
     //This method converts the image to Base64 format
     private String convertUploadedFileToBase64(MultipartFile file) throws IOException {
         return Base64.getEncoder().encodeToString(file.getBytes());
+    }
+
+    private boolean isUserLoggedInUser(User user, HttpSession currentSession) {
+        User loggedInUser = (User) currentSession.getAttribute("loggeduser");
+        return loggedInUser.getId().equals(user.getId());
     }
 
     //findOrCreateTags() method has been implemented, which returns the list of tags after converting the ‘tags’ string to a list of all the tags and also stores the tags in the database if they do not exist in the database. Observe the method and complete the code where required for this method.
