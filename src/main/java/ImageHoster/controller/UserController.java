@@ -10,10 +10,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpSession;
 import java.util.List;
-
 
 @Controller
 public class UserController {
@@ -40,7 +40,12 @@ public class UserController {
     //This controller method is called when the request pattern is of type 'users/registration' and also the incoming request is of POST type
     //This method calls the business logic and after the user record is persisted in the database, directs to login page
     @RequestMapping(value = "users/registration", method = RequestMethod.POST)
-    public String registerUser(User user) {
+    public String registerUser(User user, RedirectAttributes redirectAttributes) {
+        final String passwordTypeError = "Password must contain atleast 1 alphabet, 1 number & 1 special character";
+        if (!isValidPassword(user.getPassword())) {
+            redirectAttributes.addFlashAttribute("passwordTypeError", passwordTypeError);
+            return "redirect:/users/registration";
+        }
         userService.registerUser(user);
         return "redirect:/users/login";
     }
@@ -78,5 +83,33 @@ public class UserController {
         List<Image> images = imageService.getAllImages();
         model.addAttribute("images", images);
         return "index";
+    }
+
+    /**
+     * Checks whether given password is valid or not. It should contain atleast one letter, digit and special character
+     * @param password
+     * @return
+     */
+    private boolean isValidPassword(String password) {
+        if (password == null || password.isEmpty()) {
+            return false;
+        }
+        int numberOfDigits = 0;
+        int numberOfLetters = 0;
+        int numberOfSpecialChars = 0;
+        for (char character : password.toCharArray()) {
+            if (Character.isDigit(character)) {
+                numberOfDigits++;
+            } else if (Character.isLetter(character)) {
+                numberOfLetters++;
+            } else {
+                numberOfSpecialChars++;
+            }
+
+            if (numberOfDigits > 0 && numberOfLetters > 0 && numberOfSpecialChars > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }
