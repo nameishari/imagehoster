@@ -3,6 +3,7 @@ package ImageHoster.controller;
 import ImageHoster.model.Image;
 import ImageHoster.model.Tag;
 import ImageHoster.model.User;
+import ImageHoster.service.CommentService;
 import ImageHoster.service.ImageService;
 import ImageHoster.service.TagService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +23,18 @@ import java.util.*;
 @Controller
 public class ImageController {
 
-    @Autowired
-    private ImageService imageService;
+    private final ImageService imageService;
+
+    private final TagService tagService;
+
+    private final CommentService commentService;
 
     @Autowired
-    private TagService tagService;
+    public ImageController(ImageService imageService, TagService tagService, CommentService commentService) {
+        this.imageService = imageService;
+        this.tagService = tagService;
+        this.commentService = commentService;
+    }
 
     //This method displays all the images in the user home page after successful login
     @RequestMapping("images")
@@ -51,6 +59,7 @@ public class ImageController {
         Image image = imageService.getImage(id);
         model.addAttribute("image", image);
         model.addAttribute("tags", image.getTags());
+        model.addAttribute("comments", image.getComments());
         return "images/image";
     }
 
@@ -154,6 +163,16 @@ public class ImageController {
         }
         imageService.deleteImage(imageId);
         return "redirect:/images";
+    }
+
+    /**
+     * Submits the comment and redirects to show image page.
+     */
+    @RequestMapping(value = "/image/{imageId}/comments", method = RequestMethod.POST)
+    public String saveCommentSubmit(@PathVariable("imageId") Integer imageId, @RequestParam("comment") String comment) {
+        Image commentedOn = imageService.getImage(imageId);
+        commentService.saveComment(commentedOn, comment);
+        return "redirect:/images/" + commentedOn.getId();
     }
 
 
